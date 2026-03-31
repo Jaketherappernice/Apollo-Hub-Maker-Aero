@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>APOLLO MENU MAKER PRO</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0f0f12;
+            --card: #1a1a24;
+            --accent: #ff6a00;
+            --accent-hover: #e65f00;
+            --text: #ffffff;
+            --text-dim: #a1a1aa;
+            --secondary: #22c55e;
+            --danger: #ef4444;
+            --glass: rgba(255, 255, 255, 0.03);
+        }
+
+        body {
+            margin: 0;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: var(--bg);
+            background-image: radial-gradient(circle at 50% -20%, #3a1c00 0%, #0f0f12 50%);
+            color: var(--text);
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        .screen {
+            display: none;
+            height: 100vh;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 40px;
+            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            opacity: 0;
+            transform: translateY(10px);
+            position: absolute;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .active { display: flex; opacity: 1; z-index: 10; transform: translateY(0); }
+        .orange-text { color: var(--accent); }
+
+        .btn-main {
+            background: var(--accent);
+            color: white;
+            border: none;
+            padding: 14px 36px;
+            font-size: 1rem;
+            border-radius: 12px;
+            cursor: pointer;
+            font-weight: 700;
+            margin-top: 20px;
+            transition: 0.3s;
+            box-shadow: 0 4px 15px rgba(255, 106, 0, 0.3);
+            text-transform: uppercase;
+        }
+
+        .btn-main:hover { background: var(--accent-hover); transform: translateY(-2px); }
+
+        input[type="text"] {
+            background: var(--card);
+            border: 2px solid #333;
+            color: white;
+            padding: 15px;
+            border-radius: 12px;
+            width: 320px;
+            text-align: center;
+            font-size: 1.1rem;
+            outline: none;
+        }
+
+        .toggle-btn {
+            padding: 15px 40px;
+            font-weight: 800;
+            border-radius: 12px;
+            border: 2px solid #333;
+            cursor: pointer;
+            transition: 0.3s;
+            background: #222;
+            color: white;
+            width: 150px;
+        }
+
+        .toggle-btn.true-active { background: var(--secondary); border-color: #3fe07b; box-shadow: 0 0 15px rgba(34, 197, 94, 0.4); }
+        .toggle-btn.false-active { background: var(--danger); border-color: #ff6b6b; box-shadow: 0 0 15px rgba(239, 68, 68, 0.4); }
+
+        .builder-container {
+            width: 100%;
+            max-width: 700px;
+            max-height: 50vh;
+            overflow-y: auto;
+            margin-top: 25px;
+            padding: 15px;
+            background: var(--glass);
+            border-radius: 15px;
+        }
+
+        .tab-block {
+            background: #1a1a24;
+            border: 1px solid var(--accent);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+            text-align: left;
+            position: relative;
+        }
+
+        .button-entry {
+            background: #0f0f12;
+            padding: 15px;
+            margin-top: 10px;
+            border-radius: 10px;
+            border: 1px solid #333;
+            position: relative;
+        }
+
+        textarea {
+            width: 100%;
+            height: 80px;
+            background: #0a0a0f;
+            color: #ff9d00;
+            border: 1px solid #333;
+            margin-top: 10px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            box-sizing: border-box;
+            resize: none;
+            padding: 10px;
+        }
+
+        .del-btn { position: absolute; right: 15px; top: 15px; color: var(--text-dim); cursor: pointer; z-index: 5; }
+
+        #final-script-box {
+            width: 90%;
+            max-width: 800px;
+            height: 320px;
+            background: #050507;
+            color: #ff9d00;
+            padding: 20px;
+            border-radius: 15px;
+            margin-top: 20px;
+            text-align: left;
+            white-space: pre;
+            overflow: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85rem;
+            border: 1px solid #333;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="welcome" class="screen active">
+        <h1>APOLLO <span class="orange-text">AERO BUILDER</span></h1>
+        <p style="color: var(--text-dim);">Revised Template System with Enhanced Tabs & Global Dragging.</p>
+        <button class="btn-main" onclick="nav('welcome', 'naming')">Initialize</button>
+    </div>
+
+    <div id="naming" class="screen">
+        <h2>Hub <span class="orange-text">Identity</span></h2>
+        <input type="text" id="gui-name" placeholder="SYSTEM_CONTROL">
+        <br>
+        <button class="btn-main" onclick="nav('naming', 'security')">Next Step</button>
+    </div>
+
+    <div id="security" class="screen">
+        <h2>Security <span class="orange-text">Protocol</span></h2>
+        <p style="color: var(--text-dim);">Enable an Encrypted Key Window?</p>
+        <div style="display: flex; gap: 20px; margin-top: 20px;">
+            <button id="key-true" class="toggle-btn" onclick="toggleKey(true)">TRUE</button>
+            <button id="key-false" class="toggle-btn" onclick="toggleKey(false)">FALSE</button>
+        </div>
+        <div id="key-details" style="display: none; margin-top: 20px;">
+            <input type="text" id="key-string" placeholder="Enter Secret Key" style="width: 280px;">
+        </div>
+        <button class="btn-main" style="margin-top: 40px;" onclick="nav('security', 'builder')">DONE</button>
+    </div>
+
+    <div id="builder" class="screen">
+        <h2>Structure <span class="orange-text">Architect</span></h2>
+        <div class="builder-container" id="tab-list"></div>
+        <div style="display: flex; gap: 10px;">
+            <button class="btn-main" onclick="addTab()" style="background: #333;">+ Add Tab</button>
+            <button class="btn-main" style="background:var(--secondary);" onclick="finishScript()">Compile Script</button>
+        </div>
+    </div>
+
+    <div id="success" class="screen">
+        <h1 style="color:var(--secondary);">Success!</h1>
+        <div id="final-script-box"></div>
+        <div style="display: flex; gap: 15px;">
+            <button class="btn-main" onclick="copyScript()">Copy Code</button>
+            <button class="btn-main" style="background:#2a2a35;" onclick="location.reload()">Reset</button>
+        </div>
+    </div>
+
+    <script>
+        let useKeySystem = false;
+
+        function nav(from, to) {
+            document.getElementById(from).classList.remove('active');
+            document.getElementById(to).classList.add('active');
+        }
+
+        function toggleKey(val) {
+            useKeySystem = val;
+            document.getElementById('key-true').className = val ? 'toggle-btn true-active' : 'toggle-btn';
+            document.getElementById('key-false').className = !val ? 'toggle-btn false-active' : 'toggle-btn';
+            document.getElementById('key-details').style.display = val ? 'block' : 'none';
+        }
+
+        function addTab() {
+            const list = document.getElementById('tab-list');
+            const div = document.createElement('div');
+            div.className = 'tab-block';
+            div.innerHTML = `
+                <span class="del-btn" onclick="this.parentElement.remove()">✕</span>
+                <input type="text" class="tab-name" placeholder="Tab Name" style="width:80%; background:transparent; border:none; border-bottom:1px solid var(--accent); color:white;">
+                <div class="button-container"></div>
+                <button class="btn-main" onclick="addButton(this)" style="font-size:0.7rem; padding:8px 15px; margin-top:15px; background:rgba(255,255,255,0.1);">+ Add Button</button>
+            `;
+            list.appendChild(div);
+        }
+
+        function addButton(btn) {
+            const container = btn.previousElementSibling;
+            const div = document.createElement('div');
+            div.className = 'button-entry';
+            div.innerHTML = `
+                <span class="del-btn" onclick="this.parentElement.remove()">✕</span>
+                <input type="text" class="btn-label" placeholder="Button Name" style="width:90%; background:transparent; border:none; border-bottom:1px solid #333; color:white;">
+                <textarea class="btn-code" placeholder="-- Lua Code..."></textarea>
+            `;
+            container.appendChild(div);
+        }
+
+        function finishScript() {
+            const guiName = document.getElementById('gui-name').value || "SYSTEM_CONTROL";
+            const rawKey = document.getElementById('key-string').value || "KEY123";
+            const encodedKey = btoa(rawKey);
+            const tabs = document.querySelectorAll('.tab-block');
+
+            let script = `--[[ 
+    APOLLO AERO BUILDER V2
+    Compiled with Advanced Dragging & Tab Persistence
+]]--
+
+local TweenService = game:GetService("TweenService")
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+
+local function decode(data)
+    local b = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
+    return (data:gsub('.', function(x)
+        if (x == '=') then return '' end
+        local r, f = '', (b:find(x) - 1)
+        for i = 6, 1, -1 do r = r .. (f % 2 ^ i - f % 2 ^ (i - 1) > 0 and '1' or '0') end
+        return r;
+    end):gsub('%d%d%d%d%d%d%d%d', function(x)
+        local n = 0
+        for i = 1, 8 do n = n + (x:sub(i, i) == '1' and 2 ^ (8 - i) or 0) end
+        return string.char(n)
+    end))
+end
+
+local function MakeDraggable(frame)
+    local dragging, dragInput, dragStart, startPos
+    frame.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true dragStart = input.Position startPos = frame.Position
+            input.Changed:Connect(function() if input.UserInputState == Enum.UserInputState.End then dragging = false end end)
+        end
+    end)
+    frame.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then dragInput = input end
+    end)
+    UserInputService.InputChanged:Connect(function(input)
+        if input == dragInput and dragging then
+            local delta = input.Position - dragStart
+            frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+        end
+    end)
+end
+
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "CustomAeroMenu"
+ScreenGui.Parent = Players.LocalPlayer:WaitForChild("PlayerGui")
+ScreenGui.ResetOnSpawn = false
+
+local Main = Instance.new("Frame")
+Main.Name = "Main"
+Main.Parent = ScreenGui
+Main.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
+Main.BackgroundTransparency = 1 
+Main.Position = UDim2.new(0.5, -200, 0.5, -150)
+Main.Size = UDim2.new(0, 400, 0, 300)
+Main.Active = true
+Main.ClipsDescendants = true
+Main.Visible = false
+MakeDraggable(Main)
+
+local UICorner = Instance.new("UICorner", Main)
+UICorner.CornerRadius = UDim.new(0, 10)
+
+local UIStroke = Instance.new("UIStroke", Main)
+UIStroke.Thickness = 2
+UIStroke.Color = Color3.fromRGB(0, 170, 255)
+UIStroke.Transparency = 1
+
+local Title = Instance.new("TextLabel", Main)
+Title.Name = "Title"
+Title.BackgroundTransparency = 1
+Title.Position = UDim2.new(0, 15, 0, 10)
+Title.Size = UDim2.new(0, 200, 0, 30)
+Title.Font = Enum.Font.GothamBold
+Title.Text = "${guiName}"
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title.TextSize = 18
+Title.TextTransparency = 1
+Title.TextXAlignment = Enum.TextXAlignment.Left
+
+local MinimizeBtn = Instance.new("TextButton", Main)
+MinimizeBtn.Name = "Minimize"
+MinimizeBtn.BackgroundTransparency = 1
+MinimizeBtn.Position = UDim2.new(1, -35, 0, 10)
+MinimizeBtn.Size = UDim2.new(0, 25, 0, 25)
+MinimizeBtn.Font = Enum.Font.GothamBold
+MinimizeBtn.Text = "-"
+MinimizeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+MinimizeBtn.TextSize = 20
+MinimizeBtn.TextTransparency = 1
+
+local TabHolder = Instance.new("ScrollingFrame", Main)
+TabHolder.Name = "TabHolder"
+TabHolder.Size = UDim2.new(1, -20, 0, 35)
+TabHolder.Position = UDim2.new(0, 10, 0, 45)
+TabHolder.BackgroundTransparency = 1
+TabHolder.CanvasSize = UDim2.new(2, 0, 0, 0)
+TabHolder.ScrollBarThickness = 0
+local TabList = Instance.new("UIListLayout", TabHolder)
+TabList.FillDirection = Enum.FillDirection.Horizontal
+TabList.Padding = UDim.new(0, 5)
+
+local Pages = Instance.new("Frame", Main)
+Pages.Size = UDim2.new(1, -20, 1, -100)
+Pages.Position = UDim2.new(0, 10, 0, 90)
+Pages.BackgroundTransparency = 1
+
+local function StartIntro()
+    Main.Visible = true
+    task.wait(0.5)
+    TweenService:Create(Main, TweenInfo.new(1), {BackgroundTransparency = 0.15}):Play()
+    TweenService:Create(UIStroke, TweenInfo.new(1), {Transparency = 0}):Play()
+    task.wait(1)
+    TweenService:Create(Title, TweenInfo.new(0.5), {TextTransparency = 0}):Play()
+    TweenService:Create(MinimizeBtn, TweenInfo.new(0.5), {TextTransparency = 0}):Play()
+end
+`;
+
+            if (useKeySystem) {
+                script += `
+local KeyFrame = Instance.new("Frame", ScreenGui)
+KeyFrame.Size = UDim2.new(0, 300, 0, 150)
+KeyFrame.Position = UDim2.new(0.5, -150, 0.5, -75)
+KeyFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+KeyFrame.Active = true
+MakeDraggable(KeyFrame)
+Instance.new("UICorner", KeyFrame).CornerRadius = UDim.new(0, 8)
+Instance.new("UIStroke", KeyFrame).Color = Color3.fromRGB(0, 170, 255)
+
+local KI = Instance.new("TextBox", KeyFrame)
+KI.Size = UDim2.new(0, 240, 0, 40)
+KI.Position = UDim2.new(0.5, -120, 0.25, 0)
+KI.PlaceholderText = "Enter Key"
+KI.Text = ""
+KI.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+KI.TextColor3 = Color3.new(1, 1, 1)
+Instance.new("UICorner", KI)
+
+local KV = Instance.new("TextButton", KeyFrame)
+KV.Size = UDim2.new(0, 120, 0, 35)
+KV.Position = UDim2.new(0.5, -60, 0.65, 0)
+KV.Text = "VERIFY"
+KV.Font = Enum.Font.GothamBold
+KV.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
+KV.TextColor3 = Color3.new(1, 1, 1)
+Instance.new("UICorner", KV)
+
+KV.MouseButton1Click:Connect(function()
+    if KI.Text == decode("${encodedKey}") then 
+        KeyFrame:Destroy() 
+        StartIntro() 
+    else
+        KI.Text = ""
+        KI.PlaceholderText = "WRONG KEY"
+    end
+end)
+`;
+            } else {
+                script += `task.spawn(StartIntro)\n`;
+            }
+
+            tabs.forEach((tab, i) => {
+                const tName = tab.querySelector('.tab-name').value || "Tab " + (i + 1);
+                script += `
+-- Tab: ${tName}
+local P${i} = Instance.new("ScrollingFrame", Pages)
+P${i}.Name = "Page_${i}"
+P${i}.Size = UDim2.new(1, 0, 1, 0)
+P${i}.BackgroundTransparency = 1
+P${i}.Visible = ${i === 0 ? "true" : "false"}
+P${i}.ScrollBarThickness = 2
+P${i}.AutomaticCanvasSize = Enum.AutomaticSize.Y
+local PL${i} = Instance.new("UIListLayout", P${i})
+PL${i}.Padding = UDim.new(0, 5)
+PL${i}.HorizontalAlignment = Enum.HorizontalAlignment.Center
+
+local T${i} = Instance.new("TextButton", TabHolder)
+T${i}.Size = UDim2.new(0, 90, 1, 0)
+T${i}.Text = "${tName}"
+T${i}.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+T${i}.TextColor3 = Color3.new(1, 1, 1)
+Instance.new("UICorner", T${i})
+
+T${i}.MouseButton1Click:Connect(function()
+    for _, p in pairs(Pages:GetChildren()) do p.Visible = false end
+    P${i}.Visible = true
+end)
+`;
+                tab.querySelectorAll('.button-entry').forEach(btn => {
+                    const bLabel = btn.querySelector('.btn-label').value || "Button";
+                    const bCode = btn.querySelector('.btn-code').value;
+                    script += `
+do
+    local B = Instance.new("TextButton", P${i})
+    B.Size = UDim2.new(1, -10, 0, 35)
+    B.Text = "${bLabel}"
+    B.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+    B.TextColor3 = Color3.new(1, 1, 1)
+    B.Font = Enum.Font.Gotham
+    Instance.new("UICorner", B)
+    B.MouseButton1Click:Connect(function() 
+        ${bCode} 
+    end)
+end
+`;
+                });
+            });
+
+            script += `
+local isMinimized = false
+local originalSize = UDim2.new(0, 400, 0, 300)
+local minimizedSize = UDim2.new(0, 400, 0, 45)
+
+MinimizeBtn.MouseButton1Click:Connect(function()
+    isMinimized = not isMinimized
+    local targetSize = isMinimized and minimizedSize or originalSize
+    TweenService:Create(Main, TweenInfo.new(0.4, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {Size = targetSize}):Play()
+    MinimizeBtn.Text = isMinimized and "+" or "-"
+end)`;
+
+            document.getElementById('final-script-box').innerText = script; 
+            nav('builder', 'success');
+        }
+
+        function copyScript() {
+            const el = document.createElement('textarea');
+            el.value = document.getElementById('final-script-box').innerText;
+            document.body.appendChild(el);
+            el.select();
+            document.execCommand('copy');
+            document.body.removeChild(el);
+            alert("Script Copied to Clipboard!");
+        }
+    </script>
+</body>
+</html>
