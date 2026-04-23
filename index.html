@@ -156,9 +156,47 @@
             font-size: 0.85rem;
             border: 1px solid #333;
         }
+
+        /* Notification bar (top-right) */
+        #notify-bar {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: linear-gradient(135deg, #1a1a24, #2a1500);
+            border: 1px solid var(--accent);
+            color: var(--text);
+            padding: 12px 20px;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            box-shadow: 0 8px 24px rgba(255, 106, 0, 0.25);
+            transform: translateX(120%);
+            opacity: 0;
+            transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.5s ease;
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        #notify-bar.show {
+            transform: translateX(0);
+            opacity: 1;
+        }
+
+        #notify-bar::before {
+            content: "";
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--accent);
+            box-shadow: 0 0 8px var(--accent);
+        }
     </style>
 </head>
 <body>
+
+    <div id="notify-bar">Apollo Aero V3 (fixed)</div>
 
     <div id="welcome" class="screen active">
         <h1>APOLLO <span class="orange-text">AERO BUILDER</span></h1>
@@ -207,6 +245,21 @@
     <script>
         let useKeySystem = false;
 
+        // Notification helper — shows top-right bar, then dismisses
+        function showNotification(message, duration = 3500) {
+            const bar = document.getElementById('notify-bar');
+            bar.textContent = message;
+            // Re-attach pseudo-element styling by toggling class
+            requestAnimationFrame(() => bar.classList.add('show'));
+            clearTimeout(bar._timer);
+            bar._timer = setTimeout(() => bar.classList.remove('show'), duration);
+        }
+
+        // Show on initial page load
+        window.addEventListener('load', () => {
+            setTimeout(() => showNotification('Apollo Aero V3 (fixed)', 3500), 400);
+        });
+
         function nav(from, to) {
             document.getElementById(from).classList.remove('active');
             document.getElementById(to).classList.add('active');
@@ -247,31 +300,25 @@
         function finishScript() {
             const guiName = document.getElementById('gui-name').value || "SYSTEM_CONTROL";
             const rawKey = document.getElementById('key-string').value || "KEY123";
-            const encodedKey = btoa(rawKey);
             const tabs = document.querySelectorAll('.tab-block');
 
+            // ===== FIXED KEY SYSTEM =====
+            // Replaces broken btoa <-> Lua base64 round-trip with a deterministic
+            // positional checksum. No padding issues, no character-set mismatches.
+            let checksum = 0;
+            for (let i = 0; i < rawKey.length; i++) {
+                checksum = (checksum + rawKey.charCodeAt(i) * (i + 1)) % 999983;
+            }
+            const keyLen = rawKey.length;
+
             let script = `--[[ 
-    APOLLO AERO BUILDER V2
+    APOLLO AERO BUILDER V3 (fixed)
     Compiled with Advanced Dragging & Tab Persistence
 ]]--
 
 local TweenService = game:GetService("TweenService")
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
-
-local function decode(data)
-    local b = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
-    return (data:gsub('.', function(x)
-        if (x == '=') then return '' end
-        local r, f = '', (b:find(x) - 1)
-        for i = 6, 1, -1 do r = r .. (f % 2 ^ i - f % 2 ^ (i - 1) > 0 and '1' or '0') end
-        return r;
-    end):gsub('%d%d%d%d%d%d%d%d', function(x)
-        local n = 0
-        for i = 1, 8 do n = n + (x:sub(i, i) == '1' and 2 ^ (8 - i) or 0) end
-        return string.char(n)
-    end))
-end
 
 local function MakeDraggable(frame)
     local dragging, dragInput, dragStart, startPos
@@ -369,6 +416,7 @@ end
 
             if (useKeySystem) {
                 script += `
+-- ===== FIXED KEY SYSTEM =====
 local KeyFrame = Instance.new("Frame", ScreenGui)
 KeyFrame.Size = UDim2.new(0, 300, 0, 150)
 KeyFrame.Position = UDim2.new(0.5, -150, 0.5, -75)
@@ -383,6 +431,7 @@ KI.Size = UDim2.new(0, 240, 0, 40)
 KI.Position = UDim2.new(0.5, -120, 0.25, 0)
 KI.PlaceholderText = "Enter Key"
 KI.Text = ""
+KI.ClearTextOnFocus = false
 KI.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
 KI.TextColor3 = Color3.new(1, 1, 1)
 Instance.new("UICorner", KI)
@@ -396,13 +445,23 @@ KV.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
 KV.TextColor3 = Color3.new(1, 1, 1)
 Instance.new("UICorner", KV)
 
+local function verifyKey(input)
+    local clean = input:gsub("%s", "") -- strip spaces/newlines from paste
+    if #clean ~= ${keyLen} then return false end
+    local sum = 0
+    for i = 1, #clean do
+        sum = (sum + string.byte(clean, i) * i) % 999983
+    end
+    return sum == ${checksum}
+end
+
 KV.MouseButton1Click:Connect(function()
-    if KI.Text == decode("${encodedKey}") then 
+    if verifyKey(KI.Text) then 
         KeyFrame:Destroy() 
         StartIntro() 
     else
         KI.Text = ""
-        KI.PlaceholderText = "WRONG KEY"
+        KI.PlaceholderText = "WRONG KEY - TRY AGAIN"
     end
 end)
 `;
@@ -471,6 +530,7 @@ end)`;
 
             document.getElementById('final-script-box').innerText = script; 
             nav('builder', 'success');
+            showNotification('Script compiled successfully ✓');
         }
 
         function copyScript() {
@@ -480,7 +540,7 @@ end)`;
             el.select();
             document.execCommand('copy');
             document.body.removeChild(el);
-            alert("Script Copied to Clipboard!");
+            showNotification('Script copied to clipboard ✓');
         }
     </script>
 </body>
