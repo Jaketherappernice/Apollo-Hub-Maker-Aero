@@ -157,7 +157,6 @@
             border: 1px solid #333;
         }
 
-        /* Notification bar (top-right) */
         #notify-bar {
             position: fixed;
             top: 20px;
@@ -179,10 +178,7 @@
             gap: 10px;
         }
 
-        #notify-bar.show {
-            transform: translateX(0);
-            opacity: 1;
-        }
+        #notify-bar.show { transform: translateX(0); opacity: 1; }
 
         #notify-bar::before {
             content: "";
@@ -245,17 +241,14 @@
     <script>
         let useKeySystem = false;
 
-        // Notification helper — shows top-right bar, then dismisses
         function showNotification(message, duration = 3500) {
             const bar = document.getElementById('notify-bar');
             bar.textContent = message;
-            // Re-attach pseudo-element styling by toggling class
             requestAnimationFrame(() => bar.classList.add('show'));
             clearTimeout(bar._timer);
             bar._timer = setTimeout(() => bar.classList.remove('show'), duration);
         }
 
-        // Show on initial page load
         window.addEventListener('load', () => {
             setTimeout(() => showNotification('Apollo Aero V3 (fixed)', 3500), 400);
         });
@@ -302,9 +295,6 @@
             const rawKey = document.getElementById('key-string').value || "KEY123";
             const tabs = document.querySelectorAll('.tab-block');
 
-            // ===== FIXED KEY SYSTEM =====
-            // Replaces broken btoa <-> Lua base64 round-trip with a deterministic
-            // positional checksum. No padding issues, no character-set mismatches.
             let checksum = 0;
             for (let i = 0; i < rawKey.length; i++) {
                 checksum = (checksum + rawKey.charCodeAt(i) * (i + 1)) % 999983;
@@ -313,7 +303,7 @@
 
             let script = `--[[ 
     APOLLO AERO BUILDER V3 (fixed)
-    Compiled with Advanced Dragging & Tab Persistence
+    Compiled with Advanced Dragging & Neon UI
 ]]--
 
 local TweenService = game:GetService("TweenService")
@@ -376,6 +366,12 @@ Title.TextSize = 18
 Title.TextTransparency = 1
 Title.TextXAlignment = Enum.TextXAlignment.Left
 
+-- NEON TITLE OUTLINE
+local TitleNeon = Instance.new("UIStroke", Title)
+TitleNeon.Color = Color3.fromRGB(0, 170, 255)
+TitleNeon.Thickness = 1
+TitleNeon.ApplyStrokeMode = Enum.ApplyStrokeMode.Contextual
+
 local MinimizeBtn = Instance.new("TextButton", Main)
 MinimizeBtn.Name = "Minimize"
 MinimizeBtn.BackgroundTransparency = 1
@@ -416,7 +412,6 @@ end
 
             if (useKeySystem) {
                 script += `
--- ===== FIXED KEY SYSTEM =====
 local KeyFrame = Instance.new("Frame", ScreenGui)
 KeyFrame.Size = UDim2.new(0, 300, 0, 150)
 KeyFrame.Position = UDim2.new(0.5, -150, 0.5, -75)
@@ -446,7 +441,7 @@ KV.TextColor3 = Color3.new(1, 1, 1)
 Instance.new("UICorner", KV)
 
 local function verifyKey(input)
-    local clean = input:gsub("%s", "") -- strip spaces/newlines from paste
+    local clean = input:gsub("%s", "") 
     if #clean ~= ${keyLen} then return false end
     local sum = 0
     for i = 1, #clean do
@@ -472,7 +467,6 @@ end)
             tabs.forEach((tab, i) => {
                 const tName = tab.querySelector('.tab-name').value || "Tab " + (i + 1);
                 script += `
--- Tab: ${tName}
 local P${i} = Instance.new("ScrollingFrame", Pages)
 P${i}.Name = "Page_${i}"
 P${i}.Size = UDim2.new(1, 0, 1, 0)
@@ -489,7 +483,13 @@ T${i}.Size = UDim2.new(0, 90, 1, 0)
 T${i}.Text = "${tName}"
 T${i}.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
 T${i}.TextColor3 = Color3.new(1, 1, 1)
+T${i}.Font = Enum.Font.GothamBold
 Instance.new("UICorner", T${i})
+
+local TN${i} = Instance.new("UIStroke", T${i})
+TN${i}.Color = Color3.fromRGB(0, 170, 255)
+TN${i}.Thickness = 0.6
+TN${i}.ApplyStrokeMode = Enum.ApplyStrokeMode.Contextual
 
 T${i}.MouseButton1Click:Connect(function()
     for _, p in pairs(Pages:GetChildren()) do p.Visible = false end
@@ -506,8 +506,18 @@ do
     B.Text = "${bLabel}"
     B.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
     B.TextColor3 = Color3.new(1, 1, 1)
-    B.Font = Enum.Font.Gotham
+    B.Font = Enum.Font.GothamBold
     Instance.new("UICorner", B)
+    
+    local BS = Instance.new("UIStroke", B)
+    BS.Color = Color3.fromRGB(0, 170, 255)
+    BS.Thickness = 1.5
+    
+    local BTN_NEON = Instance.new("UIStroke", B)
+    BTN_NEON.Color = Color3.fromRGB(0, 200, 255)
+    BTN_NEON.Thickness = 0.8
+    BTN_NEON.ApplyStrokeMode = Enum.ApplyStrokeMode.Contextual
+    
     B.MouseButton1Click:Connect(function() 
         ${bCode} 
     end)
