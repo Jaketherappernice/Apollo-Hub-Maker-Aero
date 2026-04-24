@@ -1,0 +1,814 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>APOLLO — Script Obfuscator</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=IBM+Plex+Mono:wght@300;400;500;600&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+  <style>
+    :root {
+      --orange: #ff6a00;
+      --red: #ee0979;
+      --bg: #080808;
+      --surface: #101010;
+      --surface2: #161616;
+      --border: #1e1e1e;
+      --text: #c8c8c8;
+      --dim: #505050;
+      --glow: rgba(255,106,0,0.15);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ─── NOISE TEXTURE ─── */
+    body::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.035'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 9999;
+      opacity: 0.4;
+    }
+
+    /* ─── SIDEBAR ─── */
+    .sidebar {
+      position: fixed;
+      left: 0; top: 0; bottom: 0;
+      width: 72px;
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 24px 0;
+      gap: 8px;
+      z-index: 100;
+    }
+
+    .logo-mark {
+      width: 44px;
+      height: 44px;
+      background: linear-gradient(135deg, var(--orange), var(--red));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 20px;
+      color: #000;
+      letter-spacing: 1px;
+      position: relative;
+      margin-bottom: 16px;
+    }
+
+    .logo-mark::after {
+      content: '';
+      position: absolute;
+      inset: -1px;
+      background: linear-gradient(135deg, var(--orange), var(--red));
+      z-index: -1;
+      filter: blur(12px);
+      opacity: 0.5;
+    }
+
+    .sidebar-icon {
+      width: 44px;
+      height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--dim);
+      font-size: 14px;
+      cursor: pointer;
+      transition: color 0.2s;
+      position: relative;
+    }
+
+    .sidebar-icon:hover { color: var(--text); }
+    .sidebar-icon.active { color: var(--orange); }
+    .sidebar-icon.active::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 2px;
+      height: 24px;
+      background: var(--orange);
+    }
+
+    .sidebar-bottom {
+      margin-top: auto;
+    }
+
+    /* ─── STATUS PILL ─── */
+    .status-badge {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      padding: 6px 14px 6px 10px;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 10px;
+      color: var(--dim);
+      letter-spacing: 0.1em;
+      z-index: 200;
+    }
+
+    .status-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #22c55e;
+      animation: blink 2s ease-in-out infinite;
+    }
+
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+
+    /* ─── MAIN LAYOUT ─── */
+    .main {
+      margin-left: 72px;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ─── HEADER ─── */
+    .header {
+      padding: 48px 60px 40px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 24px;
+    }
+
+    .header-label {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 10px;
+      color: var(--orange);
+      letter-spacing: 0.3em;
+      text-transform: uppercase;
+      margin-bottom: 10px;
+    }
+
+    h1 {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: clamp(52px, 8vw, 96px);
+      line-height: 0.9;
+      color: #fff;
+      letter-spacing: 0.02em;
+    }
+
+    h1 span {
+      background: linear-gradient(90deg, var(--orange), var(--red));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .header-meta {
+      text-align: right;
+      flex-shrink: 0;
+    }
+
+    .version-tag {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 11px;
+      color: var(--dim);
+      letter-spacing: 0.1em;
+    }
+
+    .header-desc {
+      font-size: 12px;
+      color: var(--dim);
+      max-width: 220px;
+      line-height: 1.7;
+      margin-top: 8px;
+      text-align: right;
+    }
+
+    /* ─── WORKSPACE ─── */
+    .workspace {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      grid-template-rows: 1fr auto;
+    }
+
+    /* ─── EDITOR PANELS ─── */
+    .panel {
+      display: flex;
+      flex-direction: column;
+      border-right: 1px solid var(--border);
+    }
+
+    .panel:last-of-type { border-right: none; }
+
+    .panel-header {
+      padding: 12px 24px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--surface);
+    }
+
+    .panel-title {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 10px;
+      color: var(--dim);
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .panel-title i { font-size: 9px; }
+
+    .panel-pill {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 9px;
+      color: var(--orange);
+      background: rgba(255,106,0,0.08);
+      border: 1px solid rgba(255,106,0,0.2);
+      padding: 2px 8px;
+      letter-spacing: 0.15em;
+    }
+
+    .panel-body {
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+    }
+
+    textarea, .output-pre {
+      width: 100%;
+      height: 100%;
+      min-height: 340px;
+      background: transparent;
+      border: none;
+      outline: none;
+      resize: none;
+      padding: 28px;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 12.5px;
+      line-height: 1.8;
+      color: #d4d4d4;
+      tab-size: 2;
+    }
+
+    textarea::placeholder { color: #2a2a2a; }
+    textarea:focus { background: rgba(255,106,0,0.02); }
+
+    .output-pre {
+      display: block;
+      overflow: auto;
+      color: rgba(255,106,0,0.75);
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+
+    /* Line numbers strip */
+    .line-strip {
+      position: absolute;
+      top: 0; left: 0; bottom: 0;
+      width: 40px;
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      padding: 28px 0;
+      overflow: hidden;
+    }
+
+    .line-num {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 10px;
+      color: #222;
+      text-align: right;
+      padding: 0 10px;
+      line-height: 1.8;
+      height: 22.5px;
+    }
+
+    textarea { padding-left: 56px; }
+    .output-pre { padding-left: 56px; }
+
+    /* ─── BOTTOM TOOLBAR ─── */
+    .toolbar {
+      grid-column: 1 / -1;
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      padding: 16px 24px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .btn-main {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 28px;
+      background: linear-gradient(135deg, var(--orange), var(--red));
+      color: #000;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      border: none;
+      cursor: pointer;
+      transition: opacity 0.2s, transform 0.15s;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .btn-main::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, var(--orange), var(--red));
+      filter: blur(20px);
+      opacity: 0;
+      transition: opacity 0.3s;
+      z-index: -1;
+    }
+
+    .btn-main:hover { opacity: 0.9; transform: translateY(-1px); }
+    .btn-main:hover::after { opacity: 0.4; }
+    .btn-main:active { transform: translateY(0); }
+    .btn-main:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .btn-ghost {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 20px;
+      background: transparent;
+      color: var(--dim);
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 11px;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      border: 1px solid var(--border);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-ghost:hover {
+      color: var(--text);
+      border-color: #333;
+      background: var(--surface2);
+    }
+
+    .toolbar-divider {
+      width: 1px;
+      height: 32px;
+      background: var(--border);
+      margin: 0 4px;
+    }
+
+    .toolbar-stats {
+      margin-left: auto;
+      display: flex;
+      align-items: center;
+      gap: 24px;
+    }
+
+    .stat-item {
+      text-align: right;
+    }
+
+    .stat-value {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 22px;
+      color: var(--orange);
+      line-height: 1;
+    }
+
+    .stat-label {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 8px;
+      color: var(--dim);
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      margin-top: 2px;
+    }
+
+    .stat-divider {
+      width: 1px;
+      height: 36px;
+      background: var(--border);
+    }
+
+    /* ─── PANEL FOOTER ─── */
+    .panel-footer {
+      padding: 6px 24px 6px 56px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      background: var(--surface);
+    }
+
+    .footer-tag {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 9px;
+      color: #333;
+      letter-spacing: 0.1em;
+    }
+
+    .footer-tag.active { color: var(--orange); }
+
+    /* ─── SCAN LINE EFFECT ─── */
+    .scan-overlay {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      overflow: hidden;
+    }
+
+    .scan-line {
+      position: absolute;
+      left: 0; right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent 0%, rgba(255,106,0,0.15) 30%, rgba(255,106,0,0.3) 50%, rgba(255,106,0,0.15) 70%, transparent 100%);
+      animation: scanDown 6s linear infinite;
+    }
+
+    @keyframes scanDown {
+      0% { top: 0%; opacity: 0; }
+      5% { opacity: 1; }
+      95% { opacity: 1; }
+      100% { top: 100%; opacity: 0; }
+    }
+
+    /* ─── PROCESSING OVERLAY ─── */
+    .processing-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(8,8,8,0.85);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 16px;
+      z-index: 50;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s;
+    }
+
+    .processing-overlay.active {
+      opacity: 1;
+      pointer-events: all;
+    }
+
+    .processing-text {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 11px;
+      color: var(--orange);
+      letter-spacing: 0.3em;
+      text-transform: uppercase;
+      animation: flicker 0.1s ease-in-out infinite alternate;
+    }
+
+    @keyframes flicker {
+      from { opacity: 0.8; }
+      to { opacity: 1; }
+    }
+
+    .progress-bar {
+      width: 200px;
+      height: 1px;
+      background: var(--border);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      position: absolute;
+      left: -100%;
+      top: 0;
+      height: 100%;
+      width: 100%;
+      background: linear-gradient(90deg, transparent, var(--orange), transparent);
+      animation: progress 0.8s ease-in-out infinite;
+    }
+
+    @keyframes progress {
+      0% { left: -100%; }
+      100% { left: 100%; }
+    }
+
+    /* ─── SCROLLBAR ─── */
+    ::-webkit-scrollbar { width: 4px; height: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #222; }
+    ::-webkit-scrollbar-thumb:hover { background: #333; }
+
+    /* ─── RESPONSIVE ─── */
+    @media (max-width: 768px) {
+      .sidebar { display: none; }
+      .main { margin-left: 0; }
+      .workspace { grid-template-columns: 1fr; }
+      .panel:first-child { border-right: none; border-bottom: 1px solid var(--border); }
+      .header { padding: 32px 24px 28px; flex-direction: column; align-items: flex-start; }
+      .header-meta { text-align: left; }
+      .header-desc { text-align: left; }
+      .toolbar { flex-wrap: wrap; }
+      .toolbar-stats { margin-left: 0; width: 100%; justify-content: space-between; }
+    }
+
+    /* ─── COPY SUCCESS ─── */
+    .btn-ghost.copied {
+      color: #22c55e;
+      border-color: rgba(34,197,94,0.3);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="logo-mark">AP</div>
+    <div class="sidebar-icon active">
+      <i class="fas fa-shield-halved"></i>
+    </div>
+    <div class="sidebar-icon">
+      <i class="fas fa-layer-group"></i>
+    </div>
+    <div class="sidebar-icon">
+      <i class="fas fa-sliders"></i>
+    </div>
+    <div class="sidebar-bottom">
+      <div class="sidebar-icon">
+        <i class="fas fa-circle-info"></i>
+      </div>
+    </div>
+  </aside>
+
+  <!-- STATUS -->
+  <div class="status-badge">
+    <span class="status-dot"></span>
+    ENGINE ONLINE · V2.0.1
+  </div>
+
+  <!-- MAIN -->
+  <div class="main">
+
+    <!-- HEADER -->
+    <header class="header">
+      <div>
+        <div class="header-label">// Script Protection System</div>
+        <h1>APOLLO<br><span>OBFUSCATOR</span></h1>
+      </div>
+      <div class="header-meta">
+        <div class="version-tag">BUILD 2026.04</div>
+        <p class="header-desc">
+          Lua source encryption and obfuscation for Roblox scripts.
+        </p>
+      </div>
+    </header>
+
+    <!-- WORKSPACE -->
+    <div class="workspace">
+
+      <!-- INPUT PANEL -->
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title">
+            <i class="fas fa-code"></i>
+            Source Input
+          </div>
+          <span class="panel-pill">LUA · RAW</span>
+        </div>
+        <div class="panel-body">
+          <div class="line-strip" id="lineNumbers">
+            <div class="line-num">1</div>
+            <div class="line-num">2</div>
+            <div class="line-num">3</div>
+          </div>
+          <textarea id="inputCode" spellcheck="false"
+            placeholder="-- paste your Lua script here...&#10;print('Hello, Apollo!')&#10;local x = 42"></textarea>
+          <div class="scan-overlay">
+            <div class="scan-line"></div>
+          </div>
+        </div>
+        <div class="panel-footer">
+          <span class="footer-tag" id="inputChars">0 chars</span>
+          <span class="footer-tag" id="inputLines">1 line</span>
+        </div>
+      </div>
+
+      <!-- OUTPUT PANEL -->
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title">
+            <i class="fas fa-lock"></i>
+            Protected Output
+          </div>
+          <span class="panel-pill" id="outputStatus">AWAITING</span>
+        </div>
+        <div class="panel-body">
+          <div class="line-strip">
+            <div class="line-num">1</div>
+            <div class="line-num">2</div>
+          </div>
+          <pre class="output-pre" id="outputCode"></pre>
+          <div class="processing-overlay" id="processingOverlay">
+            <span class="processing-text">Encrypting payload...</span>
+            <div class="progress-bar"><div class="progress-fill"></div></div>
+          </div>
+          <div class="scan-overlay">
+            <div class="scan-line" style="animation-delay: -3s;"></div>
+          </div>
+        </div>
+        <div class="panel-footer">
+          <span class="footer-tag active" id="outputChars">0 chars</span>
+          <span class="footer-tag" id="compressionStat">—</span>
+        </div>
+      </div>
+
+      <!-- TOOLBAR -->
+      <div class="toolbar">
+        <button class="btn-main" id="encryptBtn" onclick="obfuscate()">
+          <i class="fas fa-bolt"></i>
+          Encrypt
+        </button>
+
+        <div class="toolbar-divider"></div>
+
+        <button class="btn-ghost" id="copyBtn" onclick="copyOutput()">
+          <i class="fas fa-copy"></i>
+          Copy
+        </button>
+
+        <button class="btn-ghost" onclick="downloadOutput()">
+          <i class="fas fa-arrow-down-to-line"></i>
+          Export .lua
+        </button>
+
+        <button class="btn-ghost" onclick="clearAll()">
+          <i class="fas fa-trash-can"></i>
+          Clear
+        </button>
+
+        <div class="toolbar-stats">
+          <div class="stat-divider"></div>
+          <div class="stat-item">
+            <div class="stat-value" id="statCompression">—</div>
+            <div class="stat-label">Expansion</div>
+          </div>
+          <div class="stat-divider"></div>
+          <div class="stat-item">
+            <div class="stat-value">256</div>
+            <div class="stat-label">Bit AES</div>
+          </div>
+          <div class="stat-divider"></div>
+          <div class="stat-item">
+            <div class="stat-value" style="color: #22c55e; font-size:18px;">
+              <i class="fas fa-shield-check" id="protectedIcon" style="color: var(--dim);"></i>
+            </div>
+            <div class="stat-label">Protected</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    // ── Line numbers sync ──
+    const textarea = document.getElementById('inputCode');
+    const lineNumbers = document.getElementById('lineNumbers');
+
+    function updateLineNumbers() {
+      const lines = textarea.value.split('\n').length;
+      lineNumbers.innerHTML = Array.from({length: Math.max(lines, 1)}, (_, i) =>
+        `<div class="line-num">${i + 1}</div>`
+      ).join('');
+    }
+
+    textarea.addEventListener('input', () => {
+      updateLineNumbers();
+      const len = textarea.value.length;
+      const lines = textarea.value.split('\n').length;
+      document.getElementById('inputChars').textContent = len + ' chars';
+      document.getElementById('inputLines').textContent = lines + ' lines';
+    });
+
+    // ── Core obfuscation ──
+    function apolloProtect(code) {
+      let cleaned = code
+        .replace(/--\[\[[\s\S]*?\]\]/g, '')
+        .replace(/--[^\n]*/g, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+
+      let encoded = '';
+      for (let i = 0; i < cleaned.length; i++) {
+        encoded += '\\' + cleaned.charCodeAt(i);
+      }
+
+      return `--[[ APOLLO_OBFUSCATOR_V2_ENCRYPTED ]]\nlocal _0xApollo = "${encoded}"; loadstring(_0xApollo)();`;
+    }
+
+    // ── Main encrypt action ──
+    function obfuscate() {
+      const input = textarea.value;
+      if (!input.trim()) {
+        textarea.style.outline = '1px solid rgba(238,9,121,0.4)';
+        setTimeout(() => textarea.style.outline = '', 600);
+        return;
+      }
+
+      const overlay = document.getElementById('processingOverlay');
+      const btn = document.getElementById('encryptBtn');
+      btn.disabled = true;
+      overlay.classList.add('active');
+
+      setTimeout(() => {
+        const result = apolloProtect(input);
+        document.getElementById('outputCode').textContent = result;
+        document.getElementById('outputStatus').textContent = 'ENCRYPTED';
+
+        const outLen = result.length;
+        const inLen = input.length;
+        const ratio = ((outLen / inLen) * 100).toFixed(0);
+        document.getElementById('outputChars').textContent = outLen + ' chars';
+        document.getElementById('compressionStat').textContent = ratio + '% of input';
+        document.getElementById('statCompression').textContent = ratio + '%';
+
+        document.getElementById('protectedIcon').style.color = '#22c55e';
+
+        overlay.classList.remove('active');
+        btn.disabled = false;
+      }, 600);
+    }
+
+    // ── Copy ──
+    function copyOutput() {
+      const content = document.getElementById('outputCode').textContent;
+      if (!content) return;
+      navigator.clipboard.writeText(content).then(() => {
+        const btn = document.getElementById('copyBtn');
+        btn.innerHTML = '<i class="fas fa-check"></i> Copied';
+        btn.classList.add('copied');
+        setTimeout(() => {
+          btn.innerHTML = '<i class="fas fa-copy"></i> Copy';
+          btn.classList.remove('copied');
+        }, 2000);
+      });
+    }
+
+    // ── Download ──
+    function downloadOutput() {
+      const content = document.getElementById('outputCode').textContent;
+      if (!content) return;
+      const blob = new Blob([content], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'apollo_protected_' + Date.now() + '.lua';
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    // ── Clear ──
+    function clearAll() {
+      textarea.value = '';
+      document.getElementById('outputCode').textContent = '';
+      document.getElementById('outputStatus').textContent = 'AWAITING';
+      document.getElementById('inputChars').textContent = '0 chars';
+      document.getElementById('inputLines').textContent = '1 line';
+      document.getElementById('outputChars').textContent = '0 chars';
+      document.getElementById('compressionStat').textContent = '—';
+      document.getElementById('statCompression').textContent = '—';
+      document.getElementById('protectedIcon').style.color = 'var(--dim)';
+      updateLineNumbers();
+    }
+
+    updateLineNumbers();
+  </script>
+</body>
+</html>
